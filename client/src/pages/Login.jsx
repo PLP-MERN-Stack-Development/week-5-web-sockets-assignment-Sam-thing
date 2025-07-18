@@ -19,7 +19,10 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      const res = await axios.post('http://localhost:5000/api/login', formData);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, {
+        email: formData.email,
+        password: formData.password
+      });
       const { token, user } = res.data;
       onLogin(user, token);      // Save user in App.jsx
       navigate('/chat');         // Navigate to chatroom

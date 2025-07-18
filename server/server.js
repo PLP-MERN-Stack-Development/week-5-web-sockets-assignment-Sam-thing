@@ -26,8 +26,14 @@ const server = http.createServer(app);
 // });
 // app.use(Sentry.Handlers.requestHandler());
 
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined'));
 
-// Setup Socket.IO
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -36,12 +42,6 @@ const io = new Server(server, {
   },
 });
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(helmet());
-app.use(compression());
-app.use(morgan('combined'));
 
 app.get('/health', (req, res) => res.status(200).send('OK'));
 
