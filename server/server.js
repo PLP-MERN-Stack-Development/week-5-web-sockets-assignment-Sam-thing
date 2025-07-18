@@ -19,12 +19,12 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-const Sentry = require('@sentry/node');
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  tracesSampleRate: 1.0,
-});
-app.use(Sentry.Handlers.requestHandler());
+// const Sentry = require('@sentry/node');
+// Sentry.init({
+//   dsn: process.env.SENTRY_DSN,
+//   tracesSampleRate: 1.0,
+// });
+// app.use(Sentry.Handlers.requestHandler());
 
 
 // Setup Socket.IO
