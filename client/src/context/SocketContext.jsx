@@ -17,7 +17,7 @@ export const SocketProvider = ({ user, children }) => {
   useEffect(() => {
     if (!user) return;
 
-    socket.current = io('https://your-backend-service.onrender.com', {
+    socket.current = io('https://week-5-web-sockets-assignment-sam-thing-1.onrender.com', {
   query: { userId: user.id },
 });
 
