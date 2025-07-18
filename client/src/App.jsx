@@ -4,7 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import ChatRoom from './pages/ChatRoom';
 import NotFound from './pages/NotFound';
-import { SocketProvider } from './context/socketContext';
+import { SocketProvider } from './context/SocketContext';
 
 const App = () => {
   const [user, setUser] = useState(null);

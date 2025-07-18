@@ -135,6 +135,12 @@ server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
+// Serve the frontend build
+app.get("/", (req, res) => {
+  res.send("✅ WebSocket Server is Live! Visit the frontend to chat.");
+});
+
+
 // Error handling
 app.get('/crash-test', (req, res) => {
   throw new Error('💥 Intentional crash for Sentry test');
