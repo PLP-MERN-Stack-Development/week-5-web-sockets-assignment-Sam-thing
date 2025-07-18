@@ -9,7 +9,6 @@ const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
 
-
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const messageRoutes = require('./routes/messageRoutes');
@@ -19,37 +18,37 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// const Sentry = require('@sentry/node');
-// Sentry.init({
-//   dsn: process.env.SENTRY_DSN,
-//   tracesSampleRate: 1.0,
-// });
-// app.use(Sentry.Handlers.requestHandler());
+// CORS Config for both REST and Socket.IO
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://week-5-web-sockets-assignment-sam-thing.vercel.app',
+  'https://week-5-web-sockets-assignment-sam-thing-2zyhv4eiv.vercel.app',
+];
 
-// Middleware
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
+// Middlewares
 app.use(express.json());
 app.use(helmet());
 app.use(compression());
 app.use(morgan('combined'));
 
-// Socket.IO setup
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
-
-
-app.get('/health', (req, res) => res.status(200).send('OK'));
-
-
-// Static folder
+// Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
+// Health check route
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/messages', messageRoutes);
@@ -61,12 +60,21 @@ mongoose.connect(process.env.MONGODB_URI, {
 }).then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB connection failed:', err));
 
-// In-memory stores (for demo only)
+// WebSocket setup
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+// In-memory data stores (for demo purposes only)
 const users = {};
 const messages = [];
 const typingUsers = {};
 
-// Socket.IO logic
+// WebSocket logic
 io.on('connection', (socket) => {
   console.log(`🔌 User connected: ${socket.id}`);
 
@@ -129,21 +137,21 @@ io.on('connection', (socket) => {
   });
 });
 
-// Start server
+// Default root route
+app.get('/', (req, res) => {
+  res.send("✅ WebSocket Server is Live! Visit the frontend to chat.");
+});
+
+// Crash test route (optional)
+app.get('/crash-test', (req, res) => {
+  throw new Error('💥 Intentional crash for Sentry test');
+});
+
+// Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
 
-// Serve the frontend build
-app.get("/", (req, res) => {
-  res.send("✅ WebSocket Server is Live! Visit the frontend to chat.");
-});
-
-
-// Error handling
-app.get('/crash-test', (req, res) => {
-  throw new Error('💥 Intentional crash for Sentry test');
-});
-
+// Export app (optional for testing or advanced setups)
 module.exports = { app, server, io };
