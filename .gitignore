@@ -31,3 +31,4 @@ Thumbs.db
 
 # 🔥 Sentry DSN example
 .env.example
+.vercel

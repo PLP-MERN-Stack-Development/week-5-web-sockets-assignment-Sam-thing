@@ -17,9 +17,9 @@ export const SocketProvider = ({ user, children }) => {
   useEffect(() => {
     if (!user) return;
 
-    socket.current = io('http://localhost:5000', {
-      query: { userId: user.id },
-    });
+    socket.current = io('https://your-backend-service.onrender.com', {
+  query: { userId: user.id },
+});
 
     // Events
     socket.current.on('connect', () => {
