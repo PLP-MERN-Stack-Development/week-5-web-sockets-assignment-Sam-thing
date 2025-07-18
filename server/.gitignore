@@ -1,0 +1,25 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Environment variables
+.env
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Package manager lock (optional if using pnpm consistently)
+package-lock.json
+yarn.lock
+
+# Optional: VSCode or JetBrains
+.vscode/
+.idea/
+
+.pnpm-debug.log
+.pnpm-store/
