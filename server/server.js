@@ -5,6 +5,10 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const { Server } = require('socket.io');
 const path = require('path');
+const helmet = require('helmet');
+const compression = require('compression');
+const morgan = require('morgan');
+
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -14,6 +18,14 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+const Sentry = require('@sentry/node');
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+});
+app.use(Sentry.Handlers.requestHandler());
+
 
 // Setup Socket.IO
 const io = new Server(server, {
@@ -27,6 +39,12 @@ const io = new Server(server, {
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use(helmet());
+app.use(compression());
+app.use(morgan('combined'));
+
+app.get('/health', (req, res) => res.status(200).send('OK'));
+
 
 // Static folder
 app.use(express.static(path.join(__dirname, 'public')));
@@ -115,6 +133,11 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+});
+
+// Error handling
+app.get('/crash-test', (req, res) => {
+  throw new Error('💥 Intentional crash for Sentry test');
 });
 
 module.exports = { app, server, io };

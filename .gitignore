@@ -1,0 +1,33 @@
+# 🔥 Node.js / Express (backend)
+node_modules/
+.env
+.env.local
+.env.development
+.env.production
+dist/
+coverage/
+logs/
+npm-debug.log*
+pnpm-lock.yaml
+
+# 🔥 React (frontend)
+client/node_modules/
+client/.env
+client/.env.local
+client/.env.development
+client/.env.production
+client/build/
+client/dist/
+client/coverage/
+client/.next/
+
+# 🔥 System / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.swp
+
+# 🔥 Sentry DSN example
+.env.example
