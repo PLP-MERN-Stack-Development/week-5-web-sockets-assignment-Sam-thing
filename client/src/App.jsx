@@ -7,7 +7,11 @@ import NotFound from './pages/NotFound';
 import { SocketProvider } from './context/SocketContext';
 
 const App = () => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+  const savedUser = localStorage.getItem('user');
+  return savedUser ? JSON.parse(savedUser) : null;
+});
+
 
   return (
     <SocketProvider user={user}>

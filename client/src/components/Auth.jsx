@@ -1,15 +1,36 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 
 const Auth = ({ onLogin }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
 
-  const handleSubmit = (e) => {
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(isRegistering ? 'Registering user:' : 'Logging in user:', username);
-    if (!username.trim()) return alert('Username is required');
-    onLogin({ username, password, mode: isRegistering ? 'register' : 'login' });
+    setError('');
+    setLoading(true);
+
+    try {
+      let res;
+      if (isRegistering) {
+        res = await axios.post('/api/auth/register', { username, password });
+      } else {
+        res = await axios.post('/api/auth/login', { username, password });
+      }
+      onLogin(res.data.user, res.data.token);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+        'Authentication failed'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -18,6 +39,10 @@ const Auth = ({ onLogin }) => {
         <h2 className="text-2xl font-bold mb-4 text-center text-gray-700">
           {isRegistering ? 'Register' : 'Login'}
         </h2>
+
+        {error && (
+          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">{error}</div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -45,8 +70,11 @@ const Auth = ({ onLogin }) => {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+            disabled={loading}
           >
-            {isRegistering ? 'Create Account' : 'Login'}
+            {loading
+              ? (isRegistering ? 'Creating...' : 'Logging in...')
+              : (isRegistering ? 'Create Account' : 'Login')}
           </button>
         </form>
 
@@ -55,6 +83,7 @@ const Auth = ({ onLogin }) => {
           <button
             onClick={() => setIsRegistering(!isRegistering)}
             className="text-blue-600 hover:underline font-medium"
+            disabled={loading}
           >
             {isRegistering ? 'Login' : 'Register'}
           </button>

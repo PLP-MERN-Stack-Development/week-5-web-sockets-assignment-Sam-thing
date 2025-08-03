@@ -1,110 +1,175 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 
-// Create Context
 const SocketContext = createContext();
-
 export const useSocket = () => useContext(SocketContext);
 
-// Component wrapper
 export const SocketProvider = ({ user, children }) => {
   const socket = useRef(null);
-  const [messages, setMessages] = useState([]);
+  const [messagesByRoom, setMessagesByRoom] = useState({}); // Store messages by room
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState([]);
-  const [currentRoom, setCurrentRoom] = useState('general');
+  const [currentRoom, setCurrentRoom] = useState('nexus');
+
+  // Load messages from localStorage on component mount
+  useEffect(() => {
+    const savedMessages = localStorage.getItem('chat_messages_by_room');
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages);
+        setMessagesByRoom(parsedMessages);
+      } catch (error) {
+        console.error('Error parsing saved messages:', error);
+        localStorage.removeItem('chat_messages_by_room');
+      }
+    }
+  }, []);
+
+  // Save messages to localStorage whenever messagesByRoom changes
+  useEffect(() => {
+    if (Object.keys(messagesByRoom).length > 0) {
+      try {
+        localStorage.setItem('chat_messages_by_room', JSON.stringify(messagesByRoom));
+      } catch (error) {
+        console.error('Error saving messages to localStorage:', error);
+      }
+    }
+  }, [messagesByRoom]);
 
   useEffect(() => {
     if (!user) return;
 
-    socket.current = io('https://week-5-web-sockets-assignment-sam-thing-2.onrender.com', {
-  query: { userId: user.id },
-});
+    socket.current = io('http://localhost:5000');
 
-    // Events
     socket.current.on('connect', () => {
-      console.log('🔌 Connected to socket server');
-      socket.current.emit('joinRoom', { roomId: currentRoom, username: user.username });
+      socket.current.emit('user_join', user.username);
+      // When connecting, join the current room
+      socket.current.emit('join_room', currentRoom);
     });
 
-    socket.current.on('newMessage', (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    // Listen for room creation events
+    socket.current.on('room_created', (roomData) => {
+      console.log('New room created:', roomData);
     });
 
-    socket.current.on('onlineUsers', (users) => {
-      setOnlineUsers(users.filter((u) => u.id !== user.id));
+    // Listen for room list updates
+    socket.current.on('rooms_list', (roomsList) => {
+      // Handle receiving the full rooms list if needed
+      console.log('Rooms list:', roomsList);
     });
 
-    socket.current.on('userTyping', ({ username }) => {
-      setTypingUsers((prev) =>
-        prev.some((u) => u.username === username) ? prev : [...prev, { username }]
-      );
+    socket.current.on('user_list', setOnlineUsers);
+    
+    socket.current.on('receive_message', (msg) => {
+      const targetRoom = msg.room || currentRoom;
+      
+      setMessagesByRoom((prev) => {
+        const roomMessages = prev[targetRoom] || [];
+        
+        // Check for duplicates
+        const messageExists = roomMessages.some(existingMsg => 
+          existingMsg.id === msg.id || 
+          (existingMsg.content === msg.content && 
+           existingMsg.username === msg.username && 
+           Math.abs(new Date(existingMsg.timestamp) - new Date(msg.timestamp)) < 1000)
+        );
+        
+        if (messageExists) {
+          return prev;
+        }
+        
+        return {
+          ...prev,
+          [targetRoom]: [...roomMessages, msg]
+        };
+      });
     });
-
-    socket.current.on('userStopTyping', ({ username }) => {
-      setTypingUsers((prev) => prev.filter((u) => u.username !== username));
-    });
-
+    
+    socket.current.on('typing_users', setTypingUsers);
+    
     return () => {
       socket.current.disconnect();
-      console.log('🔌 Disconnected from socket');
     };
-  }, [user]);
+  }, [user, currentRoom]);
 
-  // Send public message
-  const sendMessage = (content, roomId = currentRoom) => {
-    const msg = {
-      content,
-      sender: user,
-      roomId,
-      type: 'public',
-      createdAt: new Date().toISOString(),
-    };
-    socket.current.emit('sendMessage', msg);
-    setMessages((prev) => [...prev, msg]);
+  // Get messages for current room
+  const getCurrentRoomMessages = () => {
+    return messagesByRoom[currentRoom] || [];
   };
 
-  // Send private message
-  const sendPrivateMessage = (content, recipientId) => {
+  // Send message
+  const sendMessage = (content) => {
     const msg = {
-      content,
-      sender: user,
-      recipient: recipientId,
-      type: 'private',
-      createdAt: new Date().toISOString(),
+      ...content,
+      username: user.username,
+      timestamp: content.timestamp || new Date().toISOString(),
+      id: content.id || Date.now() + Math.random(),
+      room: currentRoom, // Add room to message
     };
-    socket.current.emit('privateMessage', msg);
-    setMessages((prev) => [...prev, msg]);
+    
+    // Add to local messages immediately
+    setMessagesByRoom((prev) => ({
+      ...prev,
+      [currentRoom]: [...(prev[currentRoom] || []), msg]
+    }));
+    
+    // Send to server
+    socket.current.emit('send_message', msg);
   };
 
-  // Join a new room
-  const joinRoom = (roomId) => {
-    socket.current.emit('joinRoom', { roomId, username: user.username });
+  // Switch rooms
+  const switchRoom = (roomId) => {
+    if (socket.current && currentRoom !== roomId) {
+      socket.current.emit('leave_room', currentRoom);
+      socket.current.emit('join_room', roomId);
+    }
     setCurrentRoom(roomId);
-    setMessages([]); // optionally clear chat
   };
 
-  // Typing indicators
   const startTyping = () => {
-    socket.current.emit('typing', { username: user.username });
+    socket.current.emit('typing', true);
   };
 
   const stopTyping = () => {
-    socket.current.emit('stopTyping', { username: user.username });
+    socket.current.emit('typing', false);
   };
+
+  const clearMessages = (roomId = null) => {
+    if (roomId) {
+      // Clear specific room
+      setMessagesByRoom(prev => {
+        const updated = { ...prev };
+        delete updated[roomId];
+        return updated;
+      });
+    } else {
+      // Clear all messages
+      setMessagesByRoom({});
+      localStorage.removeItem('chat_messages_by_room');
+    }
+  };
+
+    const createRoom = (roomData) => {
+      if (socket.current) {
+        socket.current.emit('create_room', roomData);
+      }
+    };
+
 
   return (
     <SocketContext.Provider
       value={{
-        messages,
+        messages: getCurrentRoomMessages(), // Current room messages
+        messagesByRoom, // All messages by room
         onlineUsers,
+        createRoom,
         typingUsers,
         currentRoom,
         sendMessage,
-        sendPrivateMessage,
-        joinRoom,
+        switchRoom,
         startTyping,
         stopTyping,
+        clearMessages,
       }}
     >
       {children}
