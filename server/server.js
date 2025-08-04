@@ -36,6 +36,7 @@ const allowedOrigins = [
   'https://week-5-web-sockets-assignment-sam-t.vercel.app'
 ];
 
+// ✅ Simplified CORS - allow all week-5-web-sockets deployments
 app.use(cors({
   origin: function (origin, callback) {
     console.log('🔍 CORS Request from origin:', origin);
@@ -46,25 +47,21 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // Check exact matches first
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log('✅ Exact match found for origin:', origin);
+    // Allow localhost for development
+    if (origin.includes('localhost')) {
+      console.log('✅ Localhost allowed:', origin);
       return callback(null, true);
     }
     
-    // ✅ Regex patterns for your week-5-web-sockets project
-    const vercelWeekAssignmentRegex = /^https:\/\/week-5-web-sockets-assignment-sam-[\w-]*\.vercel\.app$/;
-    
-    if (vercelWeekAssignmentRegex.test(origin)) {
-      console.log('✅ Vercel week assignment deployment matched:', origin);
+    // Allow any week-5-web-sockets vercel deployment
+    if (origin.includes('week-5-web-sockets-assignment') && origin.includes('vercel.app')) {
+      console.log('✅ Week 5 Vercel deployment allowed:', origin);
       return callback(null, true);
     }
-
-    // ✅ General fallback pattern for any week-5-web-sockets deployment
-    const vercelWeekGeneralRegex = /^https:\/\/week-5-web-sockets-assignment.*\.vercel\.app$/;
     
-    if (vercelWeekGeneralRegex.test(origin)) {
-      console.log('✅ General Vercel week assignment deployment matched:', origin);
+    // Allow your render backend
+    if (origin.includes('week-5-web-sockets-assignment') && origin.includes('onrender.com')) {
+      console.log('✅ Week 5 Render deployment allowed:', origin);
       return callback(null, true);
     }
 
@@ -74,7 +71,7 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
-  optionsSuccessStatus: 200 // For legacy browser support
+  optionsSuccessStatus: 200
 }));
 
 // ✅ Add favicon route to prevent 404 errors
