@@ -22,6 +22,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
   'http://localhost:5173',
   'https://week-5-web-sockets-assignment-sam-thing.vercel.app',
+  'https://week-5-web-sockets-assignment-sam-thing-yjc31yb14.vercel.app'
 ];
 
 app.use(cors({
