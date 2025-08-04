@@ -18,49 +18,8 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// CORS Config for both REST and Socket.IO
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://week-5-web-sockets-assignment-sam-thing.vercel.app',
-  'https://week-5-web-sockets-assignment-sam-thing-yjc31yb14.vercel.app'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    console.log('🔍 CORS Request from origin:', origin);
-
-    if (!origin) {
-      console.log('✅ Allowing request with no origin');
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      console.log('✅ Exact match found for origin:', origin);
-      return callback(null, true);
-    }
-
-    // Match Vercel preview deployments for this project
-    const vercelPreviewRegex = /^https:\/\/week-5-web-sockets-assignment-sam-thing-[\w-]+\.vercel\.app$/;
-    if (vercelPreviewRegex.test(origin)) {
-      console.log('✅ Vercel preview deployment matched:', origin);
-      return callback(null, true);
-    }
-
-    // General fallback for any similar Vercel subdomains if needed
-    const generalVercelRegex = /^https:\/\/week-5.*\.vercel\.app$/;
-    if (generalVercelRegex.test(origin)) {
-      console.log('✅ General Vercel match allowed:', origin);
-      return callback(null, true);
-    }
-
-    console.log('❌ Blocked by CORS:', origin);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
-  optionsSuccessStatus: 200
-}));
+const { corsOptions, allowedOrigins } = require('./utils/corsOptions');
+app.use(cors(corsOptions));
 
 // Middlewares
 app.use(express.json());
@@ -91,15 +50,26 @@ const io = new Server(server, {
   cors: {
     origin: function (origin, callback) {
       if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS (Socket.IO)"));
+        return callback(null, true);
       }
+
+      const vercelPreviewRegex = /^https:\/\/week-5-web-sockets-assignment-sam-thing-[\w-]+\.vercel\.app$/;
+      if (vercelPreviewRegex.test(origin)) {
+        return callback(null, true);
+      }
+
+      const generalVercelRegex = /^https:\/\/week-5.*\.vercel\.app$/;
+      if (generalVercelRegex.test(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS (Socket.IO)"));
     },
     methods: ['GET', 'POST'],
     credentials: true
   }
 });
+
 
 // Enhanced in-memory data stores with room support
 const users = {}; // socketId -> { username, id, currentRoom, isOnline }
