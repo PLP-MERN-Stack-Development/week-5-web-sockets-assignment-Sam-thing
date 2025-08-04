@@ -27,13 +27,39 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+    console.log('🔍 CORS Request from origin:', origin);
+
+    if (!origin) {
+      console.log('✅ Allowing request with no origin');
+      return callback(null, true);
     }
+
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ Exact match found for origin:', origin);
+      return callback(null, true);
+    }
+
+    // Match Vercel preview deployments for this project
+    const vercelPreviewRegex = /^https:\/\/week-5-web-sockets-assignment-sam-thing-[\w-]+\.vercel\.app$/;
+    if (vercelPreviewRegex.test(origin)) {
+      console.log('✅ Vercel preview deployment matched:', origin);
+      return callback(null, true);
+    }
+
+    // General fallback for any similar Vercel subdomains if needed
+    const generalVercelRegex = /^https:\/\/week-5.*\.vercel\.app$/;
+    if (generalVercelRegex.test(origin)) {
+      console.log('✅ General Vercel match allowed:', origin);
+      return callback(null, true);
+    }
+
+    console.log('❌ Blocked by CORS:', origin);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token'],
+  optionsSuccessStatus: 200
 }));
 
 // Middlewares
